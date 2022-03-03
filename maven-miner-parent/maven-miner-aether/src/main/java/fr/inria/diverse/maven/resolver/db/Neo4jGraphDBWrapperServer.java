@@ -1,11 +1,8 @@
 package fr.inria.diverse.maven.resolver.db;
 
 import fr.inria.diverse.maven.resolver.MetaResolver;
-import org.neo4j.driver.v1.AccessMode;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.*;
+import org.neo4j.driver.Result;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.DeadlockDetectedException;
 import org.sonatype.aether.artifact.Artifact;
@@ -14,7 +11,8 @@ import org.sonatype.aether.util.version.GenericVersionScheme;
 import org.sonatype.aether.version.InvalidVersionSpecificationException;
 import org.sonatype.aether.version.Version;
 
-import static org.neo4j.driver.v1.Values.parameters;
+import static org.neo4j.driver.Values.parameters;
+
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -35,7 +33,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	private final Driver driver;
 	
 	public Neo4jGraphDBWrapperServer(String uri) {
-		this.driver = GraphDatabase.driver("bolt://"+uri);
+		this.driver = GraphDatabase.driver("bolt://"+uri,AuthTokens.basic("neo4j","user"));
 		initDB();
 	}
 	/**
@@ -43,7 +41,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	 */
 	private void initDB() {
 
-		// creating schema 
+		// creating schema
 		try ( Session session = driver.session() )
         {	
             session.writeTransaction( tx ->
@@ -52,6 +50,8 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
             													+ "ASSERT artf.%s IS UNIQUE",
 																Properties.ARTIFACT_LABEL, 
 																Properties.COORDINATES);
+
+
 
 	            tx.run(query);
             	//query+="\n";
@@ -100,7 +100,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
             });
         } catch (Exception e) {
 			LOGGER.error("Unable to create the indexes");
-			throw e;
+			//throw e;
 		}
 		
     	
@@ -142,7 +142,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 								Properties.CLASSIFIER,
 								Properties.LAST_MODIFIED,
 								Properties.COORDINATES);	
-		            	StatementResult result = tx.run( query,
+		            	Result result = tx.run( query,
 							                             parameters(
 							                                "groupValue", artifact.getGroupId(),
 							                            	"artifactValue", artifact.getArtifactId(),
@@ -201,7 +201,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	            		Properties.SCOPE,
 	            		Properties.COORDINATES);
 	            	
-	            	StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenMinerUtil.artifactToCoordinate(sourceArtifact),
+	            	Result result = tx.run(query, parameters("coordinatesValue1", MavenMinerUtil.artifactToCoordinate(sourceArtifact),
 								                            		  "coordinatesValue2", MavenMinerUtil.artifactToCoordinate(targetArtifact),
 								                            		  "scopeValue",scope.toString()
 					                            		 	       ));
@@ -244,7 +244,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 							Properties.COORDINATES,
 							Properties.COORDINATES);
 
-					StatementResult result = tx.run(query, parameters("coordinatesValue1", MavenMinerUtil.artifactToCoordinate(sourceArtifact),
+					Result result = tx.run(query, parameters("coordinatesValue1", MavenMinerUtil.artifactToCoordinate(sourceArtifact),
 							"coordinatesValue2", MavenMinerUtil.artifactToCoordinate(targetArtifact),
 							"scopeValue"
 					));
@@ -288,7 +288,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 	            		query.append('}');
 	            		query.append(System.getProperty("line.separator"));
 	            		query.append(String.format("RETURN a.%s",Properties.GROUP));
-	            		StatementResult result = tx.run( query.toString(),
+	            		Result result = tx.run( query.toString(),
 	                             parameters("groupValue", artifact.getGroupId(),
 	                            		 	"coordinatesValue", MavenMinerUtil.artifactToCoordinate(artifact)
 	                              )
@@ -341,7 +341,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					query.append(System.getProperty("line.separator"));
 					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
 					
-					StatementResult result = tx.run( query.toString(),
+					Result result = tx.run( query.toString(),
 			                 						parameters( "coordinatesValue",MavenMinerUtil.artifactToCoordinate(artifact),
 			                 									"value",exCounter.getValueForType(type),
 			                 									"name",type.name()));
@@ -390,7 +390,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 					query.append(System.getProperty("line.separator"));
 					query.append(String.format("RETURN e.%s",Properties.EXCEPTION_NAME));
 					
-					StatementResult result = tx.run( query.toString(),
+					Result result = tx.run( query.toString(),
 			                 						parameters("coordinatesValue", 
 			                 							MavenMinerUtil.artifactToCoordinate(artifact)));
 			                 
@@ -432,13 +432,13 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 		LOGGER.info("Creating plugins version's evolution ");
 		
 		@SuppressWarnings("unchecked")
-		List<String> labels = driver.session(AccessMode.READ).readTransaction(tx -> {
+		List<String> labels = driver.session().readTransaction(tx -> {
 			final String query = String.format("MATCH (n) "
 					+ "WITH distinct labels(n) as allLabels "
 					+ "WITH collect([label in allLabels WHERE label <> '%s' AND label <> '%s' | label ]) as filteredLabels "
 					+ "RETURN reduce(s=[], x IN filteredLabels | s  + x) as reduced"
 					,Properties.ARTIFACT_LABEL, Properties.EXCEPTION_LABEL);
-			StatementResult result =  tx.run(query);
+			Result result =  tx.run(query);
 			return (List<String>) result.single().asMap().get("reduced");
 			
 		});
@@ -457,7 +457,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 			 				,Properties.VERSION
 			 				,Properties.ARTIFACT
 			 				,Properties.ARTIFACT);
-					StatementResult result = tx.run(innerQuery);
+					Result result = tx.run(innerQuery);
 					return  result.list()
 								  .stream()
 								  .map(entry -> new DefaultArtifact(String.format("%s:%s:%s"
@@ -528,7 +528,7 @@ public class Neo4jGraphDBWrapperServer extends Neo4jGraphDBWrapper implements Au
 							//,secondNode.getProperties().get(Properties.PACKAGING)
 							,secondNode.getVersion());
 		
-					StatementResult result = tx.run(query, parameters("coordinates1",coordinates1,
+					Result result = tx.run(query, parameters("coordinates1",coordinates1,
 																	  "coordinates2",coordinates2));
 					result.single().get(0).asNode();
 					return null;

@@ -8,7 +8,7 @@ public class ManualWagonProvider implements WagonProvider{
 
 	@Override
 	public Wagon lookup(String str) throws Exception {
-		 return "http".equals(str) ? new AhcWagon() : null;
+		 return "https".equals(str) ? new AhcWagon() : null;
 	}
 
 	@Override

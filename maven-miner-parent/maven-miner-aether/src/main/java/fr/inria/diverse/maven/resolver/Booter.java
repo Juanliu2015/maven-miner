@@ -30,7 +30,7 @@ public class Booter {
     public static RemoteRepository newCentralRepository() {
     	if (repo == null) {
 		    //repo = new RemoteRepository("wso2", "default", "http://maven.wso2.org/nexus/content/repositories/releases/");
-    		repo = new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/");
+    		repo = new RemoteRepository("central", "default", "https://repo1.maven.org/maven2/");
     	}
 //        return new RemoteRepository("central", "default", "http://jtechbd-cldsrvc.cloudapp.net:8090/nexus/content/repositories/maven");
 //        return new RemoteRepository("central", "default", "http://jtechbd-nexus:8090/nexus/content/repositories/maven");

@@ -120,7 +120,7 @@ public class CentralIndex
     
 	private static Channel channel;
 
-	private static String DEFAULT_USERNAME = "user"; 
+	private static String DEFAULT_USERNAME = "user";
 	
 	// filtered patterns
     private  static List<String> patterns;
@@ -148,7 +148,7 @@ public class CentralIndex
         this.indexer = plexusContainer.lookup( Indexer.class );
         this.indexUpdater = plexusContainer.lookup( IndexUpdater.class );
         // lookup wagon used to remotely fetch index
-        this.httpWagon = plexusContainer.lookup( Wagon.class, "http" );
+        this.httpWagon = plexusContainer.lookup( Wagon.class, "https" );
     }
     /**
      * 
@@ -306,7 +306,7 @@ public class CentralIndex
         // Create context for central repository index
         centralContext =
             indexer.createIndexingContext( "central-context", "central", centralLocalCache, centralIndexDir,
-                                           "http://repo1.maven.org/maven2", null, true, true, indexers );
+                                           "https://repo1.maven.org/maven2", null, true, true, indexers );
 
         	
             LOGGER.info( "Updating Index..." );
@@ -367,9 +367,7 @@ public class CentralIndex
             
             try {
                 final IndexReader ir = searcher.getIndexReader();
-                
                 Bits liveDocs = MultiFields.getLiveDocs( ir );
-                
                 String texts="";
                 int maxDocs = ir.maxDoc();
                 ArtifactInfo ai;
@@ -377,7 +375,6 @@ public class CentralIndex
                 {
                     if ( liveDocs == null || liveDocs.get( i ) )
                     {
-                    	
                         try {
                         	final Document doc = ir.document( i );
                         	ai= IndexUtils.constructArtifactInfo( doc, centralContext );

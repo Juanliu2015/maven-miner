@@ -9,6 +9,7 @@ import java.time.ZonedDateTime;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
+import org.codehaus.plexus.classworlds.UrlUtils;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.graph.Dependency;
 
@@ -89,7 +90,14 @@ public  class MavenMinerUtil {
 	 * @return null
 	 */
 	public static URL dummyURL() {
-		return null;
+		URL url = null;
+		try {
+			url = new URL("http://localhost") ;
+		}catch (Exception e){
+			e.printStackTrace();
+
+		}
+		return url;
 	}
 	/**
 	 * Splits a coordinates into 
